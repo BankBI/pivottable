@@ -14,7 +14,7 @@
   callWithJQuery(function($, d3) {
     return $.pivotUtilities.d3_renderers = {
       Treemap: function(pivotData, opts) {
-        var addToTree, color, defaults, height, i, len, ref, result, rowKey, tree, treemap, value, width;
+        var addToTree, color, d3tree, defaults, height, i, len, ref, result, root, rowKey, tree, treemap, value, width;
         defaults = {
           localeStrings: {},
           d3: {
@@ -68,32 +68,44 @@
             addToTree(tree, rowKey, value);
           }
         }
-        color = d3.scale.category10();
+        color = d3.scaleOrdinal(d3.schemeCategory10);
         width = opts.d3.width();
         height = opts.d3.height();
-        treemap = d3.layout.treemap().size([width, height]).sticky(true).value(function(d) {
-          return d.size;
-        });
-        d3.select(result[0]).append("div").style("position", "relative").style("width", width + "px").style("height", height + "px").datum(tree).selectAll(".node").data(treemap.padding([15, 0, 0, 0]).value(function(d) {
-          return d.value;
-        }).nodes).enter().append("div").attr("class", "node").style("background", function(d) {
+        treemap = d3.treemap().size([width, height]).tile(d3.treemapResquarify);
+        root = d3.hierarchy(tree, (function(_this) {
+          return function(d) {
+            return d.children;
+          };
+        })(this)).sum((function(_this) {
+          return function(d) {
+            return d.value;
+          };
+        })(this));
+        d3tree = treemap(root);
+        d3.select(result[0]).append("div").style("position", "relative").style("width", width + "px").style("height", height + "px").selectAll(".node").data(d3tree.leaves()).enter().append("div").attr("class", "node").style("left", (function(_this) {
+          return function(d) {
+            return d.x0 + "px";
+          };
+        })(this)).style("top", (function(_this) {
+          return function(d) {
+            return d.y0 + "px";
+          };
+        })(this)).style("width", (function(_this) {
+          return function(d) {
+            return Math.max(0, d.x1 - d.x0 - 1) + "px";
+          };
+        })(this)).style("height", (function(_this) {
+          return function(d) {
+            return Math.max(0, d.y1 - d.y0 - 1) + "px";
+          };
+        })(this)).style("background", function(d) {
           if (d.children != null) {
             return "lightgrey";
           } else {
-            return color(d.name);
+            return color(d.data.name);
           }
         }).text(function(d) {
-          return d.name;
-        }).call(function() {
-          this.style("left", function(d) {
-            return d.x + "px";
-          }).style("top", function(d) {
-            return d.y + "px";
-          }).style("width", function(d) {
-            return Math.max(0, d.dx - 1) + "px";
-          }).style("height", function(d) {
-            return Math.max(0, d.dy - 1) + "px";
-          });
+          return d.data.name;
         });
         return result;
       }

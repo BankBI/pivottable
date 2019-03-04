@@ -40,32 +40,34 @@ callWithJQuery ($, d3) ->
             if value?
                 addToTree(tree, rowKey, value)
 
-        color = d3.scale.category10()
+        color = d3.scaleOrdinal(d3.schemeCategory10)
         width = opts.d3.width()
         height = opts.d3.height()
 
-        treemap = d3.layout.treemap()
+        treemap = d3.treemap()
             .size([width, height])
-            .sticky(true)
-            .value( (d) -> d.size )
+            .tile(d3.treemapResquarify)
+
+        root = d3.hierarchy(tree, (d) => d.children)
+            .sum((d) => d.value)
+
+        d3tree = treemap(root)
 
         d3.select(result[0])
             .append("div")
                 .style("position", "relative")
                 .style("width", width + "px")
                 .style("height", height + "px")
-            .datum(tree).selectAll(".node")
-                .data(treemap.padding([15,0,0,0]).value( (d) -> d.value ).nodes)
+            .selectAll(".node")
+            .data(d3tree.leaves())
             .enter().append("div")
-            .attr("class", "node")
-            .style("background", (d) -> if d.children? then "lightgrey" else color(d.name) )
-            .text( (d) -> d.name )
-            .call ->
-                    this.style("left",  (d) -> d.x+"px" )
-                        .style("top",   (d) -> d.y+"px" )
-                        .style("width", (d) -> Math.max(0, d.dx - 1)+"px" )
-                        .style("height",(d) -> Math.max(0, d.dy - 1)+"px" )
-                    return
+                .attr("class", "node")
+                .style("left", (d) => d.x0 + "px")
+                .style("top", (d) => d.y0 + "px")
+                .style("width", (d) => Math.max(0, d.x1 - d.x0 - 1) + "px")
+                .style("height", (d) => Math.max(0, d.y1 - d.y0  - 1) + "px")
+                .style("background", (d) -> if d.children? then "lightgrey" else color(d.data.name) )
+                .text( (d) -> d.data.name )
 
         return result
 
